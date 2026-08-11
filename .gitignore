@@ -1,0 +1,9 @@
+## .NET build output (applies to every project subfolder)
+bin/
+obj/
+*.user
+
+## IDE
+.vs/
+.idea/
+*.swp
