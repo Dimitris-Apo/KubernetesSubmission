@@ -12,6 +12,13 @@ spec:
       labels:
         app: todoapp
     spec:
+      volumes: # Define volume
+        - name: image-pv
+          persistentVolumeClaim:
+            claimName: image-pvc
       containers:
         - name: todoapp
-          image: blackthest/todoapp:1.1
+          image: blackthest/todoapp:1.2
+          volumeMounts: # Mount volume to container
+            - name: image-pv
+              mountPath: /image-cache
