@@ -12,6 +12,17 @@ spec:
       labels:
         app: log-output
     spec:
+      volumes: # Define volume
+        - name: shared-log
+          emptyDir: {}
       containers:
-        - name: log-output
-          image: blackthest/logoutput:1.1
+        - name: log-reader
+          image: blackthest/log-reader:1.1
+          volumeMounts: # Mount volume to container
+            - name: shared-log
+              mountPath: /shared
+        - name: log-writer
+          image: blackthest/log-writer:1.1
+          volumeMounts: # Mount volume to container
+            - name: shared-log
+              mountPath: /shared
