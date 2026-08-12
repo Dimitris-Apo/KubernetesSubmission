@@ -12,6 +12,13 @@ spec:
       labels:
         app: ping-pong
     spec:
+      volumes:
+        - name: shared-pv
+          persistentVolumeClaim:
+            claimName: ping-pong-pvc
       containers:
         - name: ping-pong
-          image: blackthest/ping-pong:1.0 
+          image: blackthest/ping-pong:1.1
+          volumeMounts:
+            - name: shared-pv
+              mountPath: /pv-data

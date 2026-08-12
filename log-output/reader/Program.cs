@@ -4,6 +4,11 @@ string port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
 // mount in the pod spec — this is how the two containers actually share data.
 string filePath = Environment.GetEnvironmentVariable("FILE_PATH") ?? "/shared/status.log";
 
+// Shared PersistentVolume path for the Ping-pong request count — must match
+// the same env var on the Ping-pong container, with both pods mounting the
+// same PVC.
+string counterFilePath = Environment.GetEnvironmentVariable("COUNTER_FILE_PATH") ?? "/pv-data/count.log";
+
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
@@ -21,16 +26,34 @@ app.MapGet("/", () =>
         return Results.Text("No status written yet.", statusCode: 503);
     }
 
+    string lastLine;
     try
     {
-        string content = File.ReadAllText(filePath);
-        return Results.Text(content);
+        // Only the latest entry — this is a "current status" endpoint, and a
+        // multi-line dump doesn't combine sensibly with the ping-pong count.
+        string[] lines = File.ReadAllLines(filePath);
+        lastLine = lines.Length > 0 ? lines[^1] : string.Empty;
     }
     catch (IOException)
     {
         // Rare race with the writer touching the file at the same instant.
         return Results.Text("Status temporarily unavailable, try again.", statusCode: 503);
     }
+
+    string pingPongCount = "unknown";
+    if (File.Exists(counterFilePath))
+    {
+        try
+        {
+            pingPongCount = File.ReadAllText(counterFilePath).Trim();
+        }
+        catch (IOException)
+        {
+            // Leave it as "unknown" rather than fail the whole response over this.
+        }
+    }
+
+    return Results.Text($"{lastLine}. Ping / Pongs: {pingPongCount}");
 });
 
 app.Run();

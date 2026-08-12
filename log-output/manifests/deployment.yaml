@@ -15,12 +15,17 @@ spec:
       volumes: # Define volume
         - name: shared-log
           emptyDir: {}
+        - name: shared-pv
+          persistentVolumeClaim:
+            claimName: ping-pong-pvc
       containers:
         - name: log-reader
-          image: blackthest/log-reader:1.1
+          image: blackthest/log-reader:1.2
           volumeMounts: # Mount volume to container
             - name: shared-log
               mountPath: /shared
+            - name: shared-pv
+              mountPath: /pv-data
         - name: log-writer
           image: blackthest/log-writer:1.1
           volumeMounts: # Mount volume to container
