@@ -12,6 +12,8 @@ app.Lifetime.ApplicationStarted.Register(() =>
     Console.WriteLine($"Server started in port {port}");
 });
 
-app.MapGet("/", () => "todo app");
+// Serve wwwroot/index.html for GET / (and any other static assets placed there).
+app.UseDefaultFiles();
+app.UseStaticFiles();
 
 app.Run();

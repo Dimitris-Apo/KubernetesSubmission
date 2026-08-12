@@ -14,4 +14,4 @@ spec:
     spec:
       containers:
         - name: todoapp
-          image: blackthest/todoapp:1.0
+          image: blackthest/todoapp:1.1
