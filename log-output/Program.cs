@@ -1,40 +1,46 @@
-﻿// See https://aka.ms/new-console-template for more information
-using System;
+// See https://aka.ms/new-console-template for more information
 using System.Globalization;
-using System.Threading;
-using System.Threading.Tasks;
 
 // 1. Generate and store the random string in memory on startup
 string uniqueId = Guid.NewGuid().ToString();
 
-// Handle graceful shutdown (Ctrl+C)
-using CancellationTokenSource cts = new();
-Console.CancelKeyPress += (sender, e) =>
-{
-    e.Cancel = true;
-    cts.Cancel();
-};
+string port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
 
-// 2. Output the string with an ISO-8601 UTC timestamp, e.g. 2020-03-30T12:15:17.705Z: <string>
-void PrintEntry()
-{
-    string timestamp = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fff", CultureInfo.InvariantCulture) + "Z";
-    Console.WriteLine($"{timestamp}: {uniqueId}");
-}
+var builder = WebApplication.CreateBuilder(args);
+builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
-try
-{
-    // 3. Print immediately on startup, then every 5 seconds thereafter
-    PrintEntry();
+// Keep stdout as a clean log stream: drop Kestrel's routine request/lifecycle
+// noise, but keep warnings/errors visible.
+builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
-    using PeriodicTimer timer = new(TimeSpan.FromSeconds(5));
-    while (await timer.WaitForNextTickAsync(cts.Token))
+var app = builder.Build();
+
+// Same "timestamp: id" format used by both the periodic stdout log and the HTTP endpoint.
+string FormatEntry() =>
+    DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ss.fff", CultureInfo.InvariantCulture) + "Z: " + uniqueId;
+
+// 2. Keep printing to stdout immediately and then every 5 seconds, in the background,
+//    alongside the HTTP server. Stops cleanly on shutdown (Ctrl+C/SIGTERM).
+CancellationToken stoppingToken = app.Lifetime.ApplicationStopping;
+_ = Task.Run(async () =>
+{
+    try
     {
-        PrintEntry();
+        Console.WriteLine(FormatEntry());
+        using PeriodicTimer timer = new(TimeSpan.FromSeconds(5));
+        while (await timer.WaitForNextTickAsync(stoppingToken))
+        {
+            Console.WriteLine(FormatEntry());
+        }
     }
-}
-catch (OperationCanceledException)
-{
-    // Keep stdout as a clean log stream; shutdown notice goes to stderr instead.
-    Console.Error.WriteLine("Application stopped.");
-}
+    catch (OperationCanceledException)
+    {
+        // Expected on shutdown.
+    }
+});
+
+// 3. On-demand HTTP endpoint reporting the current status
+//    (current timestamp + the random string stored in memory since startup).
+app.MapGet("/", () => FormatEntry());
+
+app.Run();
