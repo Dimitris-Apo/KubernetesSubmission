@@ -2,6 +2,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: ping-pong-dep
+  namespace: exercises
 spec:
   replicas: 1
   selector:
@@ -12,13 +13,6 @@ spec:
       labels:
         app: ping-pong
     spec:
-      volumes:
-        - name: shared-pv
-          persistentVolumeClaim:
-            claimName: ping-pong-pvc
       containers:
         - name: ping-pong
           image: blackthest/ping-pong:1.2
-          volumeMounts:
-            - name: shared-pv
-              mountPath: /pv-data

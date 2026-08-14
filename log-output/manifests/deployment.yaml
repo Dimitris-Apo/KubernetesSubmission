@@ -1,6 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
+  namespace: exercises
   name: log-output-dep
 spec:
   replicas: 1
@@ -15,17 +16,12 @@ spec:
       volumes: # Define volume
         - name: shared-log
           emptyDir: {}
-        - name: shared-pv
-          persistentVolumeClaim:
-            claimName: ping-pong-pvc
       containers:
         - name: log-reader
           image: blackthest/log-reader:1.3
           volumeMounts: # Mount volume to container
             - name: shared-log
               mountPath: /shared
-            - name: shared-pv
-              mountPath: /pv-data
           env:
             - name: PINGPONG_URL
               value: "http://ping-pong-svc:2400/pongs"
