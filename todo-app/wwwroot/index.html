@@ -49,13 +49,19 @@
       background: rgba(127, 127, 127, 0.15);
       cursor: pointer;
     }
-    #todo-form button:hover { background: rgba(127, 127, 127, 0.3); }
+    #todo-form button:hover:not(:disabled) { background: rgba(127, 127, 127, 0.3); }
+    #todo-form button:disabled { opacity: 0.5; cursor: default; }
     .char-count {
       margin: 0.35rem 0 0;
       font-size: 0.85rem;
       opacity: 0.6;
     }
     .char-count.over-limit { color: #d33; opacity: 1; }
+    #todo-error {
+      margin: 0.6rem 0 0;
+      font-size: 0.85rem;
+      color: #d33;
+    }
     #todo-list {
       padding-left: 1.25rem;
       margin-top: 1.25rem;
@@ -66,7 +72,7 @@
 <body>
   <h1>&#9989; Todo App</h1>
   <p class="subtitle">Server is up and responding to GET /.</p>
-  <p>Todo functionality is coming soon &mdash; this page will grow into the real thing.</p>
+  <p>Todos are now backed by the todo-backend service &mdash; nothing is hardcoded below.</p>
   <img src="/image" alt="A random picture from Lorem Picsum" />
 
   <section class="todos">
@@ -83,20 +89,50 @@
       <button type="submit">Send</button>
     </form>
     <p class="char-count"><span id="char-count">0</span>/140</p>
+    <p id="todo-error" hidden></p>
 
-    <ul id="todo-list">
-      <li>Learn Docker</li>
-      <li>Learn Kubernetes</li>
-      <li>Water the plants</li>
-    </ul>
+    <ul id="todo-list"></ul>
   </section>
 
   <script>
     const MAX_LENGTH = 140;
+    const TODOS_URL = '/todos'; // same-origin, routed to todo-backend by the Ingress
     const form = document.getElementById('todo-form');
     const input = document.getElementById('todo-input');
+    const sendButton = form.querySelector('button');
     const list = document.getElementById('todo-list');
     const charCount = document.getElementById('char-count');
+    const errorEl = document.getElementById('todo-error');
+
+    function showError(message) {
+      errorEl.textContent = message;
+      errorEl.hidden = false;
+    }
+
+    function clearError() {
+      errorEl.hidden = true;
+    }
+
+    function renderTodo(todo) {
+      const li = document.createElement('li');
+      li.textContent = todo.text;
+      li.dataset.id = todo.id;
+      list.appendChild(li);
+    }
+
+    async function loadTodos() {
+      try {
+        const response = await fetch(TODOS_URL);
+        if (!response.ok) {
+          throw new Error(`GET /todos returned ${response.status}`);
+        }
+        const todos = await response.json();
+        list.innerHTML = '';
+        todos.forEach(renderTodo);
+      } catch (err) {
+        showError("Couldn't load todos - todo-backend may be unreachable.");
+      }
+    }
 
     input.addEventListener('input', () => {
       const length = input.value.length;
@@ -104,23 +140,40 @@
       charCount.classList.toggle('over-limit', length > MAX_LENGTH);
     });
 
-    form.addEventListener('submit', (event) => {
-      // No backend endpoint to send this to yet - just reflect it in the
-      // list client-side for now.
+    form.addEventListener('submit', async (event) => {
       event.preventDefault();
+      clearError();
 
       const text = input.value.trim();
       if (!text || text.length > MAX_LENGTH) {
         return;
       }
 
-      const li = document.createElement('li');
-      li.textContent = text;
-      list.appendChild(li);
+      sendButton.disabled = true;
+      try {
+        const response = await fetch(TODOS_URL, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
 
-      input.value = '';
-      charCount.textContent = '0';
+        if (!response.ok) {
+          throw new Error(`POST /todos returned ${response.status}`);
+        }
+
+        const created = await response.json();
+        renderTodo(created);
+
+        input.value = '';
+        charCount.textContent = '0';
+      } catch (err) {
+        showError("Couldn't save that todo - todo-backend may be unreachable.");
+      } finally {
+        sendButton.disabled = false;
+      }
     });
+
+    loadTodos();
   </script>
 </body>
 </html>
