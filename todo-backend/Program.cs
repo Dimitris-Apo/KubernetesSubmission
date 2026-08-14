@@ -1,6 +1,9 @@
-const int MaxTodoLength = 140;
-
 string port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
+
+// Was a hardcoded const, now configurable too.
+int maxTodoLength = int.TryParse(Environment.GetEnvironmentVariable("MAX_TODO_LENGTH"), out int parsedMaxLength)
+    ? parsedMaxLength
+    : 140;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
@@ -43,9 +46,9 @@ app.MapGet("/todos", () =>
 app.MapPost("/todos", (TodoInput input) =>
 {
     string text = input.Text?.Trim() ?? string.Empty;
-    if (string.IsNullOrEmpty(text) || text.Length > MaxTodoLength)
+    if (string.IsNullOrEmpty(text) || text.Length > maxTodoLength)
     {
-        return Results.BadRequest(new { error = $"text must be 1-{MaxTodoLength} characters" });
+        return Results.BadRequest(new { error = $"text must be 1-{maxTodoLength} characters" });
     }
 
     Todo created;

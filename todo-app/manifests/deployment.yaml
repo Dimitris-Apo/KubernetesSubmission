@@ -19,7 +19,16 @@ spec:
             claimName: image-pvc
       containers:
         - name: todoapp
-          image: blackthest/todoapp:1.4
+          image: blackthest/todoapp:1.5
           volumeMounts: # Mount volume to container
             - name: image-pv
               mountPath: /image-cache
+          env:
+            - name: IMAGE_CACHE_MINUTES
+              value: "10"
+            - name: PICSUM_URL
+              value: "https://picsum.photos/1200"
+            - name: IMAGE_CACHE_PATH
+              value: "/image-cache/picture.jpg"
+            - name: PORT
+              value: "3000"

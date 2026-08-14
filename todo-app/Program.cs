@@ -11,6 +11,9 @@ int cacheMinutes = int.TryParse(Environment.GetEnvironmentVariable("IMAGE_CACHE_
     : 10;
 TimeSpan cacheDuration = TimeSpan.FromMinutes(cacheMinutes);
 
+// The random-picture source itself - was hardcoded, now configurable too.
+string picsumUrl = Environment.GetEnvironmentVariable("PICSUM_URL") ?? "https://picsum.photos/1200";
+
 string? imageCacheDir = Path.GetDirectoryName(imageCachePath);
 if (!string.IsNullOrEmpty(imageCacheDir))
 {
@@ -25,7 +28,7 @@ SemaphoreSlim refreshLock = new(1, 1);
 
 async Task RefreshImageAsync()
 {
-    byte[] bytes = await httpClient.GetByteArrayAsync("https://picsum.photos/1200");
+    byte[] bytes = await httpClient.GetByteArrayAsync(picsumUrl);
     await File.WriteAllBytesAsync(imageCachePath, bytes);
 }
 

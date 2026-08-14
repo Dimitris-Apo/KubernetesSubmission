@@ -27,4 +27,10 @@ EXPOSE $PORT
 # mounted somewhere else.
 ENV IMAGE_CACHE_PATH=/image-cache/picture.jpg
 
+# How long a cached picture is served before a background refresh is triggered.
+ENV IMAGE_CACHE_MINUTES=10
+
+# Where the random picture itself comes from.
+ENV PICSUM_URL=https://picsum.photos/1200
+
 ENTRYPOINT ["dotnet", "TodoApp.dll"]

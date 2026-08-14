@@ -16,4 +16,9 @@ spec:
     spec:
       containers:
         - name: todo-backend
-          image: blackthest/todo-backend:1.0
+          image: blackthest/todo-backend:1.1
+          env:
+            - name: PORT
+              value: "3000"
+            - name: MAX_TODO_LENGTH
+              value: "140"

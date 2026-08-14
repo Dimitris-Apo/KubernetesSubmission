@@ -24,4 +24,7 @@ COPY --from=build /app .
 ENV PORT=3000
 EXPOSE $PORT
 
+# Maximum allowed length for a todo's text (enforced server-side).
+ENV MAX_TODO_LENGTH=140
+
 ENTRYPOINT ["dotnet", "TodoBackend.dll"]
