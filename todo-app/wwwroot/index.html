@@ -14,6 +14,7 @@
       line-height: 1.5;
     }
     h1 { margin-bottom: 0.25rem; }
+    h2 { margin-bottom: 0.5rem; }
     .subtitle { opacity: 0.7; margin-top: 0; }
     img {
       display: block;
@@ -22,6 +23,44 @@
       border-radius: 0.5rem;
       margin-top: 1.5rem;
     }
+    .todos {
+      margin-top: 2.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid rgba(127, 127, 127, 0.3);
+    }
+    #todo-form {
+      display: flex;
+      gap: 0.5rem;
+    }
+    #todo-input {
+      flex: 1;
+      font: inherit;
+      padding: 0.5rem 0.6rem;
+      border: 1px solid rgba(127, 127, 127, 0.5);
+      border-radius: 0.4rem;
+      background: canvas;
+      color: canvastext;
+    }
+    #todo-form button {
+      font: inherit;
+      padding: 0.5rem 1rem;
+      border: 1px solid rgba(127, 127, 127, 0.5);
+      border-radius: 0.4rem;
+      background: rgba(127, 127, 127, 0.15);
+      cursor: pointer;
+    }
+    #todo-form button:hover { background: rgba(127, 127, 127, 0.3); }
+    .char-count {
+      margin: 0.35rem 0 0;
+      font-size: 0.85rem;
+      opacity: 0.6;
+    }
+    .char-count.over-limit { color: #d33; opacity: 1; }
+    #todo-list {
+      padding-left: 1.25rem;
+      margin-top: 1.25rem;
+    }
+    #todo-list li { margin: 0.4rem 0; }
   </style>
 </head>
 <body>
@@ -29,5 +68,59 @@
   <p class="subtitle">Server is up and responding to GET /.</p>
   <p>Todo functionality is coming soon &mdash; this page will grow into the real thing.</p>
   <img src="/image" alt="A random picture from Lorem Picsum" />
+
+  <section class="todos">
+    <h2>Todos</h2>
+    <form id="todo-form">
+      <input
+        id="todo-input"
+        type="text"
+        maxlength="140"
+        placeholder="What needs doing?"
+        required
+        autocomplete="off"
+      />
+      <button type="submit">Send</button>
+    </form>
+    <p class="char-count"><span id="char-count">0</span>/140</p>
+
+    <ul id="todo-list">
+      <li>Learn Docker</li>
+      <li>Learn Kubernetes</li>
+      <li>Water the plants</li>
+    </ul>
+  </section>
+
+  <script>
+    const MAX_LENGTH = 140;
+    const form = document.getElementById('todo-form');
+    const input = document.getElementById('todo-input');
+    const list = document.getElementById('todo-list');
+    const charCount = document.getElementById('char-count');
+
+    input.addEventListener('input', () => {
+      const length = input.value.length;
+      charCount.textContent = length;
+      charCount.classList.toggle('over-limit', length > MAX_LENGTH);
+    });
+
+    form.addEventListener('submit', (event) => {
+      // No backend endpoint to send this to yet - just reflect it in the
+      // list client-side for now.
+      event.preventDefault();
+
+      const text = input.value.trim();
+      if (!text || text.length > MAX_LENGTH) {
+        return;
+      }
+
+      const li = document.createElement('li');
+      li.textContent = text;
+      list.appendChild(li);
+
+      input.value = '';
+      charCount.textContent = '0';
+    });
+  </script>
 </body>
 </html>
