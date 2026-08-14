@@ -2,6 +2,7 @@ apiVersion: v1
 kind: PersistentVolume
 metadata:
   name: image-pv
+  namespace: project
 spec:
   storageClassName: image-pv # this is the name you are using later to claim this volume
   capacity:
