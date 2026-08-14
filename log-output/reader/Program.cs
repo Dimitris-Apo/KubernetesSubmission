@@ -4,10 +4,12 @@ string port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
 // mount in the pod spec — this is how the two containers actually share data.
 string filePath = Environment.GetEnvironmentVariable("FILE_PATH") ?? "/shared/status.log";
 
-// Shared PersistentVolume path for the Ping-pong request count — must match
-// the same env var on the Ping-pong container, with both pods mounting the
-// same PVC.
-string counterFilePath = Environment.GetEnvironmentVariable("COUNTER_FILE_PATH") ?? "/pv-data/count.log";
+// Ping-pong's /pongs endpoint, fetched over HTTP instead of a shared volume.
+// Default assumes a "ping-pong-svc" Service on port 2345 (its current
+// manifest); override if that name/port/path ever changes.
+string pingPongUrl = Environment.GetEnvironmentVariable("PINGPONG_URL") ?? "http://ping-pong-svc:2400/pongs";
+
+using HttpClient httpClient = new() { Timeout = TimeSpan.FromSeconds(3) };
 
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
@@ -17,7 +19,7 @@ builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
 var app = builder.Build();
 
-app.MapGet("/", () =>
+app.MapGet("/", async () =>
 {
     if (!File.Exists(filePath))
     {
@@ -41,16 +43,20 @@ app.MapGet("/", () =>
     }
 
     string pingPongCount = "unknown";
-    if (File.Exists(counterFilePath))
+    try
     {
-        try
+        // Response looks like "pongs 3" - the count is just the last token.
+        string response = await httpClient.GetStringAsync(pingPongUrl);
+        string[] parts = response.Trim().Split(' ', StringSplitOptions.RemoveEmptyEntries);
+        if (parts.Length > 0)
         {
-            pingPongCount = File.ReadAllText(counterFilePath).Trim();
+            pingPongCount = parts[^1];
         }
-        catch (IOException)
-        {
-            // Leave it as "unknown" rather than fail the whole response over this.
-        }
+    }
+    catch (Exception ex) when (ex is HttpRequestException or TaskCanceledException)
+    {
+        // Ping-pong may be unreachable or slow to respond — don't fail this
+        // whole response over it, just report what couldn't be fetched.
     }
 
     return Results.Text($"{lastLine}. Ping / Pongs: {pingPongCount}");

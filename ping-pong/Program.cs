@@ -1,28 +1,8 @@
-using System.Globalization;
-
 string port = Environment.GetEnvironmentVariable("PORT") ?? "3000";
 
-// Shared PersistentVolume path for the running request count — must match
-// the same env var on the Log output reader container, with both containers'
-// pods mounting the same PVC.
-string counterFilePath = Environment.GetEnvironmentVariable("COUNTER_FILE_PATH") ?? "/pv-data/count.log";
-
-string? counterDir = Path.GetDirectoryName(counterFilePath);
-if (!string.IsNullOrEmpty(counterDir))
-{
-    Directory.CreateDirectory(counterDir);
-}
-
-// In-memory counter, restored from the persisted file on startup so a pod
-// restart continues the count instead of resetting to 0 — otherwise a
-// PersistentVolume here wouldn't be any different from an emptyDir.
+// In-memory request counter. Log output now reads this over HTTP via
+// /pongs instead of a shared volume.
 int counter = 0;
-if (File.Exists(counterFilePath) &&
-    int.TryParse(File.ReadAllText(counterFilePath).Trim(), out int savedCount))
-{
-    counter = savedCount;
-}
-
 object counterLock = new();
 
 var builder = WebApplication.CreateBuilder(args);
@@ -40,14 +20,22 @@ app.MapGet("/pingpong", () =>
     int current;
     lock (counterLock)
     {
-        // Bump the in-memory count and persist the new total together, under
-        // the same lock, so concurrent requests can't write the file out of
-        // order (each write always reflects the latest count when it happens).
         current = counter++;
-        File.WriteAllText(counterFilePath, (current + 1).ToString(CultureInfo.InvariantCulture));
     }
 
     return $"pong {current}";
+});
+
+// Log output polls this over HTTP to get the running total.
+app.MapGet("/pongs", () =>
+{
+    int current;
+    lock (counterLock)
+    {
+        current = counter;
+    }
+
+    return $"pongs {current}";
 });
 
 app.Run();

@@ -22,9 +22,8 @@ ENV PORT=3000
 ENV FILE_PATH=/shared/status.log
 EXPOSE $PORT
 
-# Default shared PersistentVolume path for the Ping-pong request counter;
-# override via COUNTER_FILE_PATH if the volume is mounted somewhere else.
-# Must match the same env var on the Ping-pong container.
-ENV COUNTER_FILE_PATH=/pv-data/count.log
+# Ping-pong's /pongs endpoint, fetched over HTTP. Override if the Service
+# name/port/path differs from the default assumption.
+ENV PINGPONG_URL=http://ping-pong-svc:2400/pongs
 
 ENTRYPOINT ["dotnet", "Reader.dll"]

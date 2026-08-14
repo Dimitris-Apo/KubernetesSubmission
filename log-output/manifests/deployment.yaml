@@ -20,12 +20,15 @@ spec:
             claimName: ping-pong-pvc
       containers:
         - name: log-reader
-          image: blackthest/log-reader:1.2
+          image: blackthest/log-reader:1.3
           volumeMounts: # Mount volume to container
             - name: shared-log
               mountPath: /shared
             - name: shared-pv
               mountPath: /pv-data
+          env:
+            - name: PINGPONG_URL
+              value: "http://ping-pong-svc:2400/pongs"
         - name: log-writer
           image: blackthest/log-writer:1.1
           volumeMounts: # Mount volume to container

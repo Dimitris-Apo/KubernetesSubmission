@@ -18,7 +18,7 @@ spec:
             claimName: ping-pong-pvc
       containers:
         - name: ping-pong
-          image: blackthest/ping-pong:1.1
+          image: blackthest/ping-pong:1.2
           volumeMounts:
             - name: shared-pv
               mountPath: /pv-data
