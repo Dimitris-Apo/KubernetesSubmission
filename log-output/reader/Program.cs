@@ -9,6 +9,10 @@ string filePath = Environment.GetEnvironmentVariable("FILE_PATH") ?? "/shared/st
 // manifest); override if that name/port/path ever changes.
 string pingPongUrl = Environment.GetEnvironmentVariable("PINGPONG_URL") ?? "http://ping-pong-svc:2400/pongs";
 
+// ConfigMap-backed file - e.g. the "information.txt" key of
+// log-output-configmap, mounted as a volume in the manifests.
+string configFilePath = Environment.GetEnvironmentVariable("CONFIG_FILE_PATH") ?? "/config/information.txt";
+
 using HttpClient httpClient = new() { Timeout = TimeSpan.FromSeconds(3) };
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,7 +36,7 @@ app.MapGet("/", async () =>
     try
     {
         // Only the latest entry — this is a "current status" endpoint, and a
-        // multi-line dump doesn't combine sensibly with the ping-pong count.
+        // multi-line dump doesn't combine sensibly with the rest of the reply.
         string[] lines = File.ReadAllLines(filePath);
         lastLine = lines.Length > 0 ? lines[^1] : string.Empty;
     }
@@ -41,6 +45,13 @@ app.MapGet("/", async () =>
         // Rare race with the writer touching the file at the same instant.
         return Results.Text("Status temporarily unavailable, try again.", statusCode: 503);
     }
+
+    // From the ConfigMap: a file (mounted via a volume) and an env var
+    // (projected via valueFrom.configMapKeyRef) - both set in the manifests.
+    string configFileContent = File.Exists(configFilePath)
+        ? File.ReadAllText(configFilePath).Trim()
+        : "(config file not found)";
+    string message = Environment.GetEnvironmentVariable("MESSAGE") ?? "(not set)";
 
     string pingPongCount = "unknown";
     try
@@ -59,7 +70,8 @@ app.MapGet("/", async () =>
         // whole response over it, just report what couldn't be fetched.
     }
 
-    return Results.Text($"{lastLine}. Ping / Pongs: {pingPongCount}");
+    string body = $"{configFileContent}\nenv variable: MESSAGE={message}\n{lastLine}. Ping / Pongs: {pingPongCount}";
+    return Results.Text(body);
 });
 
 app.Run();

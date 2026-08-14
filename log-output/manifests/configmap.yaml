@@ -1,0 +1,9 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: log-output-configmap
+  namespace: exercises
+data:
+  message: "Hello from configmap!"
+  information.txt: |
+    This is a log output application that demonstrates how to use ConfigMaps in Kubernetes. The application reads configuration data from this ConfigMap and displays it in the logs.

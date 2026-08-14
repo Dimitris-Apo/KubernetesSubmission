@@ -16,15 +16,28 @@ spec:
       volumes: # Define volume
         - name: shared-log
           emptyDir: {}
+        - name: config-volume
+          configMap:
+            name: log-output-configmap
+            items:
+              - key: information.txt
+                path: information.txt
       containers:
         - name: log-reader
-          image: blackthest/log-reader:1.3
+          image: blackthest/log-reader:1.4
           volumeMounts: # Mount volume to container
             - name: shared-log
               mountPath: /shared
+            - name: config-volume
+              mountPath: /config
           env:
             - name: PINGPONG_URL
               value: "http://ping-pong-svc:2400/pongs"
+            - name: MESSAGE
+              valueFrom:
+                configMapKeyRef:
+                  name: log-output-configmap
+                  key: message
         - name: log-writer
           image: blackthest/log-writer:1.1
           volumeMounts: # Mount volume to container

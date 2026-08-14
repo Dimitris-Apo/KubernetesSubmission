@@ -26,4 +26,9 @@ EXPOSE $PORT
 # name/port/path differs from the default assumption.
 ENV PINGPONG_URL=http://ping-pong-svc:2400/pongs
 
+# Default mount path for the ConfigMap-backed file; override CONFIG_FILE_PATH
+# if it's mounted somewhere else. MESSAGE (the other ConfigMap value) is read
+# directly as a plain env var, so it needs no path/default here.
+ENV CONFIG_FILE_PATH=/config/information.txt
+
 ENTRYPOINT ["dotnet", "Reader.dll"]
