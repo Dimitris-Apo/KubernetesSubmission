@@ -24,4 +24,11 @@ COPY --from=build /app .
 ENV PORT=3000
 EXPOSE $PORT
 
+# Postgres connection - override for your actual cluster setup. No default
+# for DB_PASSWORD on purpose; that one should come from a Secret.
+ENV DB_HOST=postgres-svc
+ENV DB_PORT=5432
+ENV DB_NAME=postgres
+ENV DB_USER=postgres
+
 ENTRYPOINT ["dotnet", "PingPong.dll"]
