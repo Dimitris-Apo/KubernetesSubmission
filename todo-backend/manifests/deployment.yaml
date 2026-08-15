@@ -16,9 +16,24 @@ spec:
     spec:
       containers:
         - name: todo-backend
-          image: blackthest/todo-backend:1.1
+          image: blackthest/todo-backend:1.2
+          ports:
+            - containerPort: 3000
           env:
             - name: PORT
               value: "3000"
             - name: MAX_TODO_LENGTH
               value: "140"
+            - name: DB_HOST
+              value: "postgres-svc"
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              value: "postgres"
+            - name: DB_USER
+              value: "postgres"
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD

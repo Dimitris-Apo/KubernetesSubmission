@@ -27,4 +27,11 @@ EXPOSE $PORT
 # Maximum allowed length for a todo's text (enforced server-side).
 ENV MAX_TODO_LENGTH=140
 
+# Postgres connection - override for your actual cluster setup. No default
+# for DB_PASSWORD on purpose; that one should come from a Secret.
+ENV DB_HOST=postgres-svc
+ENV DB_PORT=5432
+ENV DB_NAME=postgres
+ENV DB_USER=postgres
+
 ENTRYPOINT ["dotnet", "TodoBackend.dll"]
