@@ -1,0 +1,19 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: todo-cronjob
+  namespace: project
+spec:
+  schedule: "0 * * * *" # Run every 1 hour
+  concurrencyPolicy: Forbid # runs are independent/additive, but no need to overlap
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          containers:
+            - name: todo-cronjob
+              image: blackthest/todo-reminder:1.0
+          restartPolicy: OnFailure
