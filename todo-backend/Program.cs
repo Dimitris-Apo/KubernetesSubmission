@@ -48,8 +48,18 @@ await using (NpgsqlConnection initConn = new(connectionString))
 var builder = WebApplication.CreateBuilder(args);
 builder.WebHost.UseUrls($"http://0.0.0.0:{port}");
 
-// Keep stdout quiet; this app has nothing it needs to log routinely.
+// Keep Kestrel/framework noise out of stdout, but let our own request
+// logging (category "TodoBackend.Todos" below) through at Information level
+// so every todo sent to the backend is visible - including rejections - to
+// whatever's collecting these logs (e.g. Grafana Alloy -> Loki).
 builder.Logging.SetMinimumLevel(LogLevel.Warning);
+builder.Logging.AddFilter("TodoBackend.Todos", LogLevel.Information);
+
+// One line per log entry ("warn: TodoBackend.Todos[0] Todo rejected: ...").
+// The default console format splits every entry into a header line plus an
+// indented message line, which Loki stores as two separate entries - leaving
+// the level on a useless header and the message itself tagged level "unknown".
+builder.Logging.AddSimpleConsole(options => options.SingleLine = true);
 
 // Permissive CORS: in the intended setup, todo-app and todo-backend sit
 // behind the same Ingress on different paths, so browser requests are
@@ -63,6 +73,8 @@ builder.Services.AddCors(options =>
 
 var app = builder.Build();
 app.UseCors();
+
+ILogger todoLogger = app.Services.GetRequiredService<ILoggerFactory>().CreateLogger("TodoBackend.Todos");
 
 app.MapGet("/todos", async () =>
 {
@@ -83,8 +95,16 @@ app.MapGet("/todos", async () =>
 app.MapPost("/todos", async (TodoInput input) =>
 {
     string text = input.Text?.Trim() ?? string.Empty;
+    // Todo text is user input going into a one-line-per-entry log, so keep
+    // embedded line breaks from being able to fake extra log lines.
+    string logText = text.ReplaceLineEndings("\\n");
     if (string.IsNullOrEmpty(text) || text.Length > maxTodoLength)
     {
+        // Warning level so rejections are easy to filter on in Loki/Grafana,
+        // separate from ordinary successful creations.
+        todoLogger.LogWarning(
+            "Todo rejected: length={Length} max={MaxTodoLength} text={Text}",
+            text.Length, maxTodoLength, logText);
         return Results.BadRequest(new { error = $"text must be 1-{maxTodoLength} characters" });
     }
 
@@ -95,6 +115,8 @@ app.MapPost("/todos", async (TodoInput input) =>
     await using NpgsqlDataReader reader = await cmd.ExecuteReaderAsync();
     await reader.ReadAsync();
     Todo created = new(reader.GetInt32(0), reader.GetString(1));
+
+    todoLogger.LogInformation("Todo created: id={Id} text={Text}", created.Id, logText);
 
     return Results.Created($"/todos/{created.Id}", created);
 });

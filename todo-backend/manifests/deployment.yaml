@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
         - name: todo-backend
-          image: blackthest/todo-backend:1.2
+          image: blackthest/todo-backend:1.4
           ports:
             - containerPort: 3000
           env:
