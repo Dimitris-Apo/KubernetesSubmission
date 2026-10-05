@@ -40,6 +40,14 @@ builder.Logging.SetMinimumLevel(LogLevel.Warning);
 
 var app = builder.Build();
 
+// Readiness endpoint. GKE's Ingress health-checks every backend with GET /
+// and only forwards traffic to ones that answer 200; without this the app
+// 404s on /, gets marked UNHEALTHY, and the load balancer returns 502 for
+// /pingpong without ever reaching the pod. No DB call here on purpose: the
+// startup block above already proved the database is reachable before this
+// server starts listening, and health probes hit this very often.
+app.MapGet("/", () => "ok");
+
 // Registered at /pingpong (not /) since it's meant to sit behind an Ingress
 // that forwards that path as-is, alongside a sibling app on other paths.
 app.MapGet("/pingpong", async () =>

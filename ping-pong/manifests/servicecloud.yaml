@@ -4,10 +4,10 @@ metadata:
   name: ping-pong-svc
   namespace: exercises
 spec:
-  type: LoadBalancer # This should be the only unfamiliar part
+  type: NodePort # This should be the only unfamiliar part
   selector:
     app: ping-pong
   ports:
-    - port: 80
+    - port: 2400
       protocol: TCP
       targetPort: 3000
