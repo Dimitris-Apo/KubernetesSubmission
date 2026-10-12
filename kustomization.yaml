@@ -15,6 +15,7 @@ resources:
   - todo-backend/manifests/service.yaml
   - todo-backend/manifests/todocronjob.yaml
   - manifests/project-gateway.yaml
+  - todo-backend/manifests/cronjob-gke.yaml
 
 images:
   - name: PROJECT/TODO-APP

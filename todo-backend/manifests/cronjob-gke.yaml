@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: backup-sa
+  namespace: project
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgres-backup
+  namespace: project
+spec:
+  schedule: "0 3 * * *"
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 3
+  jobTemplate:
+    spec:
+      backoffLimit: 2
+      template:
+        spec:
+          serviceAccountName: backup-sa
+          restartPolicy: OnFailure
+          volumes:
+            - name: backup
+              emptyDir: {}
+          initContainers:
+            - name: dump
+              image: postgres:18.0
+              command: ["sh", "-c", "pg_dump -h postgres-svc -U postgres -d postgres -f /backup/backup.sql"]
+              env:
+                - name: PGPASSWORD
+                  valueFrom:
+                    secretKeyRef:
+                      name: postgres-secret
+                      key: POSTGRES_PASSWORD
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
+          containers:
+            - name: upload
+              image: google/cloud-sdk:slim
+              command: ["sh", "-c", "gcloud storage cp /backup/backup.sql gs://dwk-gke-510209-backups/backup-$(date +%Y%m%d-%H%M%S).sql"]
+              volumeMounts:
+                - name: backup
+                  mountPath: /backup
