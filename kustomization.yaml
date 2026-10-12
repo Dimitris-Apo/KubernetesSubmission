@@ -1,0 +1,22 @@
+# kustomization.yaml (repo root)
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: project
+
+resources:
+  - manifests/project-namespace.yaml
+  - manifests/postgresproject-secret.yaml
+  - manifests/postgresproject-gke.yaml
+  - manifests/imageclaim-gke.yaml
+  - todo-app/manifests/deployment.yaml
+  - todo-app/manifests/service.yaml
+  - todo-backend/manifests/deployment.yaml
+  - todo-backend/manifests/service.yaml
+  - todo-backend/manifests/todocronjob.yaml
+  - manifests/project-gateway.yaml
+
+images:
+  - name: PROJECT/IMAGE
+    newName: blackthest/todo-backend
+    newTag: "1.4"
