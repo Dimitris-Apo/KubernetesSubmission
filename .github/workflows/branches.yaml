@@ -76,6 +76,6 @@ jobs:
             kustomize edit set image PROJECT/TODO-APP="$APP_TAG"
             kustomize edit set image PROJECT/TODO-BACKEND="$BACKEND_TAG"
             kustomize build . | kubectl apply -f -
-            kubectl rollout status deployment "$APP_DEPLOYMENT" -n project
-            kubectl rollout status deployment "$BACKEND_DEPLOYMENT" -n project
+            kubectl rollout status deployment "$APP_DEPLOYMENT"
+            kubectl rollout status deployment "$BACKEND_DEPLOYMENT"
 
