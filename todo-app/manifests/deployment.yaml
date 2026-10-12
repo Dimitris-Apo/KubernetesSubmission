@@ -21,7 +21,7 @@ spec:
             claimName: image-pvc
       containers:
         - name: todoapp
-          image: blackthest/todoapp:1.5
+          image: PROJECT/TODO-APP
           volumeMounts: # Mount volume to container
             - name: image-pv
               mountPath: /image-cache

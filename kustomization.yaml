@@ -17,6 +17,5 @@ resources:
   - manifests/project-gateway.yaml
 
 images:
-  - name: PROJECT/IMAGE
-    newName: blackthest/todo-backend
-    newTag: "1.4"
+  - name: PROJECT/TODO-APP
+  - name: PROJECT/TODO-BACKEND
