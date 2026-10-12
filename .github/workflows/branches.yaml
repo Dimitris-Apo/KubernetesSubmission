@@ -1,0 +1,81 @@
+name: Release application
+
+on:
+  push:
+    branches-ignore:
+      - main
+
+permissions:
+  contents: read
+  id-token: write
+
+env:
+  PROJECT_ID: ${{ secrets.GKE_PROJECT }}
+  GKE_CLUSTER: dwk-cluster
+  GKE_ZONE: europe-north1-b
+  REGISTRY: europe-north1-docker.pkg.dev
+  REPOSITORY: my-repository
+  APP_IMAGE: todo-app
+  BACKEND_IMAGE: todo-backend
+  APP_DEPLOYMENT: todoapp-dep
+  BACKEND_DEPLOYMENT: todo-backend-dep
+  BRANCH: ${{ github.ref_name }}
+# ...
+jobs:
+  build-publish-deploy:
+    name: Build, Publish and Deploy
+    runs-on: ubuntu-latest
+    environment: GKE_PROJECT
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+      - uses: google-github-actions/auth@v3
+        with:
+            workload_identity_provider: "${{ secrets.WORKLOAD_IDENTITY_PROVIDER }}"
+            service_account: "${{ secrets.SERVICE_ACCOUNT }}"
+
+      - name: 'Set up Cloud SDK'
+        uses: google-github-actions/setup-gcloud@v3
+
+      - name: 'Use gcloud CLI'
+        run: gcloud info
+        # ...
+      - run: gcloud --quiet auth configure-docker $REGISTRY
+# ...
+      - name: 'Get GKE credentials'
+        uses: 'google-github-actions/get-gke-credentials@v3'
+        with:
+            cluster_name: '${{ env.GKE_CLUSTER }}'
+            project_id: '${{ env.PROJECT_ID }}'
+            location: '${{ env.GKE_ZONE }}'
+# ...
+      - name: Form the image names
+        run: |
+          echo "APP_TAG=$REGISTRY/$PROJECT_ID/$REPOSITORY/$APP_IMAGE:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
+          echo "BACKEND_TAG=$REGISTRY/$PROJECT_ID/$REPOSITORY/$BACKEND_IMAGE:$BRANCH-$GITHUB_SHA" >> $GITHUB_ENV
+
+      - name: Build
+        run: |
+          docker build --tag $APP_TAG todo-app
+          docker build --tag $BACKEND_TAG todo-backend
+
+      - name: Publish
+        run: |
+          docker push $APP_TAG
+          docker push $BACKEND_TAG
+# ...
+      - name: Set up Kustomize
+        uses: imranismail/setup-kustomize@v3
+# ...
+      - name: Deploy
+        run: |
+            kubectl create namespace ${GITHUB_REF#refs/heads/} || true
+            kubectl config set-context --current --namespace=${GITHUB_REF#refs/heads/}
+            kustomize edit set namespace ${GITHUB_REF#refs/heads/}
+            kustomize edit set image PROJECT/TODO-APP="$APP_TAG"
+            kustomize edit set image PROJECT/TODO-BACKEND="$BACKEND_TAG"
+            kustomize build . | kubectl apply -f -
+            kubectl rollout status deployment "$APP_DEPLOYMENT" -n project
+            kubectl rollout status deployment "$BACKEND_DEPLOYMENT" -n project
+
